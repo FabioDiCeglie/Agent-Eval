@@ -1,0 +1,9 @@
+tasks:
+  - id: t001
+    name: "Simple factual lookup"
+    prompt: "What is the capital of France?"
+    tools_allowed: []
+    success_criteria:
+      type: contains_substring
+      value: "Paris"
+    tags: [factual]
