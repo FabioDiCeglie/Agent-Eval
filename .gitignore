@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+*.egg
+
+# Env
+.env
+
+# Results (baselines are committed; everything else is not)
+results/runs/
+results/traces/
+results/leaderboard.json
+
+# Editor
+.DS_Store
+.idea/
+.vscode/
+
+# Pytest
+.pytest_cache/
