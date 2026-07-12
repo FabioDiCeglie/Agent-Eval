@@ -29,3 +29,14 @@ class SuccessCriteria(BaseModel):
     passing_score: float = 0.7
     sequence: list[str] = []
     fn: str | None = None
+
+
+# One evaluation case: what to ask Claude, which tools it can use,
+# and what counts as a passing answer.
+class Task(BaseModel):
+    id: str
+    name: str
+    prompt: str
+    tools_allowed: list[str] = []
+    success_criteria: SuccessCriteria
+    tags: list[str] = []
