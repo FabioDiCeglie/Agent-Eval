@@ -24,8 +24,8 @@ class CriteriaType(StrEnum):
 # Each strategy only uses the fields relevant to it — the others stay None.
 class SuccessCriteria(BaseModel):
     type: CriteriaType
-    value: str | None = None 
-    rubric: str | None = None  
-    passing_score: float = 0.7  
-    sequence: list[str] = []  
-    fn: str | None = None  
+    value: str | None = None
+    rubric: str | None = None
+    passing_score: float = 0.7
+    sequence: list[str] = []
+    fn: str | None = None
