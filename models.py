@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from enum import StrEnum
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class CriteriaType(StrEnum):
@@ -40,3 +40,19 @@ class Task(BaseModel):
     tools_allowed: list[str] = []
     success_criteria: SuccessCriteria
     tags: list[str] = []
+
+
+# Result of running a single Task through the runner.
+class TaskResult(BaseModel):
+    task_id: str
+    task_name: str
+    passed: bool
+    score: float
+    reason: str = ""
+    turn_count: int = 0
+    tool_call_count: int = 0
+    tool_calls_by_name: dict[str, int] = Field(default_factory=dict)
+    input_tokens: int = 0
+    output_tokens: int = 0
+    latency_total_ms: float = 0.0
+    error: str | None = None
