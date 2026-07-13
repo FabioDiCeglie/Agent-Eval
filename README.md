@@ -34,6 +34,26 @@ agent-eval runs it:
        + cost, latency, token usage
 ```
 
+```
+User's YAML task
+      │
+      ▼
+   Runner  ◄──────────────────────────────────────────────────┐
+      │                                                        │
+      ├──► Anthropic API  →  Claude thinks, decides            │
+      │         │                                              │
+      │    Claude says "call tool X"                           │
+      │         │                                              │
+      └──► MCP Gateway  →  tool executes  →  result ──────────┘
+                                    (loop until Claude is done)
+      │
+      ▼
+  Evaluator  →  pass / fail
+      │
+      ▼
+  TaskResult  (tokens, cost, latency, score)
+```
+
 **What gets evaluated:** Claude's reasoning, tool use decisions, and answer quality.
 
 **Not evaluated here:** Whether the MCP Gateway is working correctly — that's the gateway's own concern (it has its own auth, rate limiting, audit logs, and tracing).
@@ -48,8 +68,11 @@ cp .env.example .env  # fill in your API keys
 cp scripts/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
 ```
 
+
+
 ## Usage
 
 ```bash
 uv run agent-eval --help
 ```
+
