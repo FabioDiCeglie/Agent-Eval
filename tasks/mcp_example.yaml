@@ -1,0 +1,23 @@
+tasks:
+  - id: mcp_001
+    name: "Echo via gateway"
+    prompt: |
+      Use the echo tool to send the message "hello gateway".
+      Then reply with exactly what the tool returned — nothing else.
+    tools_allowed:
+      - echo
+    success_criteria:
+      type: contains_substring
+      value: "hello gateway"
+    tags: [mcp, tool-use]
+
+  - id: mcp_002
+    name: "Must call echo"
+    prompt: |
+      Call the echo tool with message "ping-test" and confirm you received it.
+    tools_allowed:
+      - echo
+    success_criteria:
+      type: tool_sequence
+      sequence: [echo]
+    tags: [mcp, tool-use]

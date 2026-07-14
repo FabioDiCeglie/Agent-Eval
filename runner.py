@@ -15,6 +15,45 @@ DEFAULT_MODEL = "claude-opus-4-5"
 DEFAULT_MAX_TURNS = 10
 DEFAULT_MAX_TOKENS = 4096
 
+# Schemas for tools on the gateway demo server (see MCP-Gateway/mcp-server).
+_TOOL_DEFS: dict[str, dict] = {
+    "echo": {
+        "name": "echo",
+        "description": "Echo a message back to the caller.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string",
+                    "description": "Message to echo back",
+                }
+            },
+            "required": ["message"],
+        },
+    },
+    "ping": {
+        "name": "ping",
+        "description": "Return a fixed pong response.",
+        "input_schema": {"type": "object", "properties": {}},
+    },
+}
+
+
+def _build_tool_definitions(names: list[str]) -> list[dict]:
+    tools: list[dict] = []
+    for name in names:
+        if name in _TOOL_DEFS:
+            tools.append(_TOOL_DEFS[name])
+            continue
+        tools.append(
+            {
+                "name": name,
+                "description": f"Invoke the {name} tool.",
+                "input_schema": {"type": "object", "properties": {}},
+            }
+        )
+    return tools
+
 
 class TaskRunner:
     """
@@ -40,19 +79,25 @@ class TaskRunner:
         turn_count = 0
         tool_call_count = 0
         tool_calls_by_name: dict[str, int] = {}
+        tool_calls_ordered: list[str] = []
         input_tokens = 0
         output_tokens = 0
         final_response = ""
+        tools = _build_tool_definitions(task.tools_allowed)
 
         try:
             while turn_count < self.max_turns:
                 turn_count += 1
 
-                response = await self._client.messages.create(
-                    model=self.model,
-                    max_tokens=DEFAULT_MAX_TOKENS,
-                    messages=messages,
-                )
+                request_kwargs: dict = {
+                    "model": self.model,
+                    "max_tokens": DEFAULT_MAX_TOKENS,
+                    "messages": messages,
+                }
+                if tools:
+                    request_kwargs["tools"] = tools
+
+                response = await self._client.messages.create(**request_kwargs)
 
                 input_tokens += response.usage.input_tokens
                 output_tokens += response.usage.output_tokens
@@ -81,11 +126,14 @@ class TaskRunner:
                     tool_results = []
                     for block in tool_use_blocks:
                         tool_call_count += 1
+                        tool_calls_ordered.append(block.name)
                         tool_calls_by_name[block.name] = (
                             tool_calls_by_name.get(block.name, 0) + 1
                         )
 
-                        result_content = await self._call_tool(block.name, block.input)
+                        result_content = await self._call_tool(
+                            block.name, block.input
+                        )
                         tool_results.append(
                             {
                                 "type": "tool_result",
@@ -118,11 +166,10 @@ class TaskRunner:
             )
 
         latency_ms = (time.perf_counter() - start) * 1000
-        tool_names_used = list(tool_calls_by_name.keys())
         eval_result = evaluate(
             task.success_criteria,
             response=final_response,
-            tool_calls=tool_names_used,
+            tool_calls=tool_calls_ordered,
         )
 
         return TaskResult(
@@ -144,4 +191,6 @@ class TaskRunner:
         if self.mcp_client is None:
             return f"[no mcp_client configured — tool '{name}' not executed]"
         result = await self.mcp_client.call_tool(name, inputs)
-        return str(result)
+        if result.get("is_error"):
+            return f"Error: {result['content']}"
+        return result["content"]

@@ -10,6 +10,7 @@ from rich import box
 from rich.console import Console
 from rich.table import Table
 
+from mcp_client import MCPClient
 from models import Task, TaskResult
 from runner import TaskRunner
 
@@ -81,14 +82,20 @@ def run(suite: str, model: str, max_turns: int) -> None:
     tasks = load_tasks(suite)
     console.print(f"[bold]Loaded {len(tasks)} task(s) from[/bold] {suite}\n")
 
-    runner = TaskRunner(model=model, max_turns=max_turns)
     results: list[TaskResult] = []
+    needs_mcp = any(task.tools_allowed for task in tasks)
 
     async def run_all() -> None:
-        for task in tasks:
-            console.print(f"  Running [cyan]{task.id}[/cyan] {task.name}…")
-            result = await runner.run(task)
-            results.append(result)
+        mcp_client = MCPClient.from_env() if needs_mcp else None
+        runner = TaskRunner(model=model, max_turns=max_turns, mcp_client=mcp_client)
+        try:
+            for task in tasks:
+                console.print(f"  Running [cyan]{task.id}[/cyan] {task.name}…")
+                result = await runner.run(task)
+                results.append(result)
+        finally:
+            if mcp_client is not None:
+                await mcp_client.close()
 
     asyncio.run(run_all())
 

@@ -73,6 +73,29 @@ cp scripts/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
 ## Usage
 
 ```bash
-uv run agent-eval --help
+# Text-only task (no gateway needed)
+uv run agent-eval run tasks/example.yaml
+
+# Tool task — start the gateway first, then run
+./scripts/mcp-up.sh
+uv run agent-eval run tasks/mcp_example.yaml
 ```
+
+### MCP Gateway setup
+
+1. Start the gateway: `./scripts/mcp-up.sh`
+2. Copy `config/mcp-gateway.env.example` values — the gateway creates `.mcp-gateway/.env` on first run
+3. Sign a JWT for agent-eval (same secret as `GATEWAY_JWT_SECRET`):
+
+```bash
+uv run python - <<'EOF'
+import os, time, jwt
+secret = "your-secret-at-least-32-chars-long"  # match gateway .env
+print(jwt.encode({"sub": "agent-eval", "iat": int(time.time()), "exp": int(time.time()) + 3600}, secret, algorithm="HS256"))
+EOF
+```
+
+4. Put the token in `.env` as `MCP_GATEWAY_TOKEN`
+
+The demo gateway only allows the `echo` tool (see MCP-Gateway `policy.yaml`). Tasks declare which tools Claude may use via `tools_allowed` in YAML.
 
