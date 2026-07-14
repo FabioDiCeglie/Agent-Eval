@@ -21,5 +21,8 @@ results/leaderboard.json
 .idea/
 .vscode/
 
+# Local MCP Gateway clone (pulled by scripts/mcp-up.sh)
+.mcp-gateway/
+
 # Pytest
 .pytest_cache/
