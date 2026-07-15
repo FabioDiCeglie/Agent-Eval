@@ -9,7 +9,7 @@ tasks:
     success_criteria:
       type: contains_substring
       value: "hello gateway"
-    tags: [mcp, tool-use]
+    tags: [mcp, tool-use, substring]
 
   - id: mcp_002
     name: "Must call echo"
@@ -20,4 +20,80 @@ tasks:
     success_criteria:
       type: tool_sequence
       sequence: [echo]
-    tags: [mcp, tool-use]
+    tags: [mcp, tool-use, tool-sequence]
+
+  - id: mcp_003
+    name: "Ping tool"
+    prompt: |
+      Call the ping tool, then tell me what it returned.
+    tools_allowed:
+      - ping
+    success_criteria:
+      type: tool_sequence
+      sequence: [ping]
+    tags: [mcp, tool-use, tool-sequence]
+
+  - id: mcp_004
+    name: "Echo with regex check"
+    prompt: |
+      Use the echo tool with message "agent-eval-2026".
+      Your final reply must include that exact string.
+    tools_allowed:
+      - echo
+    success_criteria:
+      type: regex_match
+      value: "agent-eval-2026"
+    tags: [mcp, tool-use, regex]
+
+  - id: mcp_005
+    name: "Two echoes in order"
+    prompt: |
+      Call the echo tool twice:
+      1. First with message "first"
+      2. Then with message "second"
+      Confirm both calls succeeded.
+    tools_allowed:
+      - echo
+    success_criteria:
+      type: tool_sequence
+      sequence: [echo, echo]
+    tags: [mcp, tool-use, tool-sequence]
+
+  - id: mcp_006
+    name: "Ping then echo"
+    prompt: |
+      First call ping to check the connection.
+      Then call echo with message "ready".
+      Summarize what both tools returned.
+    tools_allowed:
+      - ping
+      - echo
+    success_criteria:
+      type: tool_sequence
+      sequence: [ping, echo]
+    tags: [mcp, tool-use, tool-sequence]
+
+  - id: mcp_007
+    name: "Echo substring in final answer"
+    prompt: |
+      Echo the message "mcp-works" using the echo tool.
+      End your reply with the word SUCCESS if the echo worked.
+    tools_allowed:
+      - echo
+    success_criteria:
+      type: contains_substring
+      value: "SUCCESS"
+    tags: [mcp, tool-use, substring]
+
+  - id: mcp_008
+    name: "Both tools available, must use echo"
+    prompt: |
+      You have ping and echo available. Use echo (not ping) to send "chosen-echo".
+      Report the result.
+    tools_allowed:
+      - ping
+      - echo
+    success_criteria:
+      type: tool_sequence
+      sequence: [echo]
+    tags: [mcp, tool-use, tool-sequence]

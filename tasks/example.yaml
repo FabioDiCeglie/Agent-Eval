@@ -6,4 +6,73 @@ tasks:
     success_criteria:
       type: contains_substring
       value: "Paris"
-    tags: [factual]
+    tags: [factual, substring]
+
+  - id: t002
+    name: "Case-insensitive match"
+    prompt: "Name the chemical symbol for gold."
+    tools_allowed: []
+    success_criteria:
+      type: contains_substring
+      value: "au"
+    tags: [factual, substring]
+
+  - id: t003
+    name: "Multi-word answer"
+    prompt: "Who wrote Romeo and Juliet?"
+    tools_allowed: []
+    success_criteria:
+      type: contains_substring
+      value: "Shakespeare"
+    tags: [factual, substring]
+
+  - id: t004
+    name: "Regex — four-digit year"
+    prompt: "In what year did the Apollo 11 moon landing happen? Reply with just the year."
+    tools_allowed: []
+    success_criteria:
+      type: regex_match
+      value: "1969"
+    tags: [factual, regex]
+
+  - id: t005
+    name: "Regex — numeric answer"
+    prompt: "What is 17 multiplied by 23? Reply with only the number."
+    tools_allowed: []
+    success_criteria:
+      type: regex_match
+      value: "\\b391\\b"
+    tags: [math, regex]
+
+  - id: t006
+    name: "Regex — structured list"
+    prompt: |
+      List exactly three primary colors, separated by commas.
+      Example format: red, blue, green
+    tools_allowed: []
+    success_criteria:
+      type: regex_match
+      value: "red.*blue.*yellow|red.*yellow.*blue|blue.*red.*yellow|blue.*yellow.*red|yellow.*red.*blue|yellow.*blue.*red"
+    tags: [reasoning, regex]
+
+  - id: t007
+    name: "Follow instructions literally"
+    prompt: |
+      Reply with exactly this sentence and nothing else:
+      The quick brown fox jumps over the lazy dog.
+    tools_allowed: []
+    success_criteria:
+      type: contains_substring
+      value: "quick brown fox"
+    tags: [instruction-following, substring]
+
+  - id: t008
+    name: "Short reasoning chain"
+    prompt: |
+      A train travels 120 km in 2 hours. What is its average speed in km/h?
+      Include the number in your answer.
+    tools_allowed: []
+    success_criteria:
+      type: regex_match
+      value: "60"
+    tags: [math, reasoning, regex]
