@@ -1,90 +1,87 @@
 # agent-eval
 
-A test suite for Claude agents, where tests are written in YAML.
+YAML test suites for Claude agents. Define a prompt and pass criteria, run the suite, get pass/fail with token and latency stats.
 
-You define what Claude should do and what counts as passing — agent-eval runs it and reports pass/fail, cost, and latency.
-
-## How it works
-
-```
-You write a YAML task:
-  prompt: "Search Wikipedia for the Eiffel Tower"
-  tools_allowed: [wikipedia_search]
-  success_criteria:
-    type: contains_substring
-    value: "Paris"
-```
-
-```
-agent-eval runs it:
-
-  1. Sends prompt ──────────────────► Anthropic API (Claude)
-                                            │
-  2. Claude calls a tool ◄─────────────────┘
-            │
-  3. Forwards tool call ────────────► MCP Gateway (tool execution)
-            │                               │
-  4. Tool result back ◄────────────────────┘
-            │
-  5. Claude writes final response
-            │
-  6. Evaluator checks the response
-            │
-       pass ✓ or fail ✗
-       + cost, latency, token usage
-```
-
-```
-User's YAML task
-      │
-      ▼
-   Runner  ◄──────────────────────────────────────────────────┐
-      │                                                        │
-      ├──► Anthropic API  →  Claude thinks, decides            │
-      │         │                                              │
-      │    Claude says "call tool X"                           │
-      │         │                                              │
-      └──► MCP Gateway  →  tool executes  →  result ──────────┘
-                                    (loop until Claude is done)
-      │
-      ▼
-  Evaluator  →  pass / fail
-      │
-      ▼
-  TaskResult  (tokens, cost, latency, score)
-```
-
-**What gets evaluated:** Claude's reasoning, tool use decisions, and answer quality.
-
-**Not evaluated here:** Whether the MCP Gateway is working correctly — that's the gateway's own concern (it has its own auth, rate limiting, audit logs, and tracing).
-
-## Setup
+## Quick start
 
 ```bash
 uv sync --all-groups
-cp .env.example .env  # fill in your API keys
+cp .env.example .env   # add ANTHROPIC_API_KEY
 
-# install the git pre-commit hook (one-time)
-cp scripts/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+uv run agent-eval run tasks/example.yaml
 ```
 
+## Task format
 
+```yaml
+tasks:
+  - id: t001
+    name: "Simple factual lookup"
+    prompt: "What is the capital of France?"
+    tools_allowed: []
+    success_criteria:
+      type: contains_substring
+      value: "Paris"
+```
 
-## Usage
+Success criteria: `contains_substring`, `regex_match`, `tool_sequence`. See [Plan.md](Plan.md) for details.
+
+## Tool tasks (MCP Gateway)
 
 ```bash
-# Text-only task (no gateway needed)
-uv run agent-eval run tasks/example.yaml
-
-# Tool task — start the gateway first, then run
 ./scripts/mcp-up.sh
 uv run agent-eval run tasks/mcp_example.yaml
 ```
 
-### MCP Gateway setup
+Set `MCP_GATEWAY_URL` and `MCP_GATEWAY_TOKEN` in `.env` (see `.env.example`).
 
-1. Start the gateway: `./scripts/mcp-up.sh`
-2. Copy `config/mcp-gateway.env.example` values — the gateway creates `.mcp-gateway/.env` on first run
+## Options
 
-The demo gateway only allows the `echo` tool (see MCP-Gateway `policy.yaml`). Tasks declare which tools Claude may use via `tools_allowed` in YAML.
+```bash
+uv run agent-eval run tasks/example.yaml --model claude-haiku-4-5 --max-turns 10
+```
 
+## How it works
+
+```mermaid
+flowchart LR
+    YAML[YAML task file] --> CLI[main.py]
+    CLI --> Runner[TaskRunner]
+    Runner --> Claude[Anthropic API]
+    Claude -->|tool_use| MCP[MCP Gateway]
+    MCP -->|tool result| Runner
+    Claude -->|end_turn| Eval[Evaluators]
+    Eval --> Report[CLI report]
+```
+
+1. Load tasks from YAML and validate with Pydantic
+2. Send each prompt to Claude (with optional tools)
+3. If Claude calls a tool, forward the request to the MCP Gateway and loop
+4. When Claude finishes, check the response against `success_criteria`
+5. Print pass/fail, tokens, and latency per task
+
+## Project layout
+
+```
+agent-eval/
+├── main.py              # CLI entry point
+├── runner.py            # Claude turn loop + tool forwarding
+├── models.py            # Task, SuccessCriteria, TaskResult
+├── mcp_client.py        # MCP Gateway client
+├── evaluators/          # pass/fail checks
+│   ├── substring.py
+│   ├── regex_eval.py
+│   └── tool_sequence.py
+├── tasks/               # example YAML suites
+│   ├── example.yaml
+│   └── mcp_example.yaml
+├── config/
+│   └── mcp-gateway.env.example
+├── scripts/
+│   ├── mcp-up.sh
+│   └── mcp-down.sh
+├── pyproject.toml
+├── .env.example
+├── README.md
+└── Plan.md
+```
