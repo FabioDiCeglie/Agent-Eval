@@ -33,7 +33,7 @@ Success criteria: `contains_substring`, `regex_match`, `tool_sequence`. See [Pla
 uv run agent-eval run tasks/mcp_example.yaml
 ```
 
-Set `GATEWAY_JWT_SECRET` in `.env` to match the gateway (see `.env.example`).
+Set `GATEWAY_JWT_SECRET` in `.env` to match the gateway (see `.env.example`). `tasks/mcp_example.yaml` only uses tools allowed by the gateway’s default `policy.yaml` (`echo`).
 
 ## Options
 
@@ -76,8 +76,7 @@ agent-eval/
 │   ├── example.yaml
 │   └── mcp_example.yaml
 ├── config/
-│   ├── mcp-gateway.env.example
-│   └── mcp-gateway-policy.yaml
+│   └── mcp-gateway.env.example
 ├── scripts/
 │   ├── mcp-up.sh
 │   └── mcp-down.sh

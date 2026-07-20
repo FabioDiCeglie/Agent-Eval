@@ -23,14 +23,14 @@ tasks:
     tags: [mcp, tool-use, tool-sequence]
 
   - id: mcp_003
-    name: "Ping tool"
+    name: "Echo tool sequence"
     prompt: |
-      Call the ping tool, then tell me what it returned.
+      Call the echo tool with message "tool-check", then tell me what it returned.
     tools_allowed:
-      - ping
+      - echo
     success_criteria:
       type: tool_sequence
-      sequence: [ping]
+      sequence: [echo]
     tags: [mcp, tool-use, tool-sequence]
 
   - id: mcp_004
@@ -60,17 +60,15 @@ tasks:
     tags: [mcp, tool-use, tool-sequence]
 
   - id: mcp_006
-    name: "Ping then echo"
+    name: "Echo then summarize"
     prompt: |
-      First call ping to check the connection.
-      Then call echo with message "ready".
-      Summarize what both tools returned.
+      Call echo with message "ready".
+      Then summarize what the tool returned in one short sentence.
     tools_allowed:
-      - ping
       - echo
     success_criteria:
       type: tool_sequence
-      sequence: [ping, echo]
+      sequence: [echo]
     tags: [mcp, tool-use, tool-sequence]
 
   - id: mcp_007
@@ -86,12 +84,11 @@ tasks:
     tags: [mcp, tool-use, substring]
 
   - id: mcp_008
-    name: "Both tools available, must use echo"
+    name: "Echo chosen message"
     prompt: |
-      You have ping and echo available. Use echo (not ping) to send "chosen-echo".
+      Use the echo tool to send "chosen-echo".
       Report the result.
     tools_allowed:
-      - ping
       - echo
     success_criteria:
       type: tool_sequence

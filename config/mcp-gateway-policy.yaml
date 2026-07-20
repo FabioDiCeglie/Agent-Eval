@@ -1,4 +1,0 @@
-# Tool allow-list for the demo upstream (echo + ping). Synced by scripts/mcp-up.sh.
-tools_allowed:
-  - echo
-  - ping

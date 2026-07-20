@@ -6,9 +6,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 CLONE_DIR="${MCP_GATEWAY_DIR:-$ROOT/.mcp-gateway}"
 REPO_URL="${MCP_GATEWAY_REPO:-https://github.com/FabioDiCeglie/MCP-Gateway.git}"
 ENV_TEMPLATE="$ROOT/config/mcp-gateway.env.example"
-POLICY_TEMPLATE="$ROOT/config/mcp-gateway-policy.yaml"
 ENV_FILE="$CLONE_DIR/.env"
-POLICY_FILE="$CLONE_DIR/policy.yaml"
 COMPOSE_FILE="$CLONE_DIR/docker/docker-compose.yaml"
 
 if [[ ! -d "$CLONE_DIR/.git" ]]; then
@@ -22,9 +20,6 @@ if [[ ! -f "$ENV_FILE" ]]; then
   cp "$ENV_TEMPLATE" "$ENV_FILE"
   echo "Created $ENV_FILE from config/mcp-gateway.env.example"
 fi
-
-cp "$POLICY_TEMPLATE" "$POLICY_FILE"
-echo "Synced $POLICY_FILE from config/mcp-gateway-policy.yaml"
 
 docker compose -f "$COMPOSE_FILE" up -d "$@"
 
