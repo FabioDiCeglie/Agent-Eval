@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-import json
 import os
 import time
 from typing import Any
@@ -52,19 +51,6 @@ def _gateway_bearer_token() -> str | None:
     )
 
 
-def _parse_mcp_headers_env() -> dict[str, str]:
-    raw = os.environ.get("MCP_HEADERS", "").strip()
-    if not raw:
-        return {}
-    try:
-        parsed = json.loads(raw)
-    except json.JSONDecodeError as exc:
-        raise ValueError("MCP_HEADERS must be valid JSON") from exc
-    if not isinstance(parsed, dict):
-        raise ValueError("MCP_HEADERS must be a JSON object")
-    return {str(key): str(value) for key, value in parsed.items()}
-
-
 def _resolve_bearer_token() -> str | None:
     """MCP_AUTH_TOKEN wins over JWT minted from GATEWAY_JWT_SECRET."""
     token = os.environ.get("MCP_AUTH_TOKEN", "").strip()
@@ -74,12 +60,11 @@ def _resolve_bearer_token() -> str | None:
 
 
 def build_mcp_http_headers() -> dict[str, str]:
-    """HTTP headers for the Streamable HTTP MCP session (env-driven)."""
-    headers = _parse_mcp_headers_env()
+    """HTTP headers for the Streamable HTTP MCP session (Bearer from env)."""
     bearer = _resolve_bearer_token()
-    if bearer:
-        headers["Authorization"] = f"Bearer {bearer}"
-    return headers
+    if not bearer:
+        return {}
+    return {"Authorization": f"Bearer {bearer}"}
 
 
 def _format_call_tool_result(result: CallToolResult) -> dict[str, Any]:
@@ -98,7 +83,7 @@ def _format_call_tool_result(result: CallToolResult) -> dict[str, Any]:
 
 
 class MCPClient:
-    """Streamable HTTP MCP client (gateway JWT, MCP_AUTH_TOKEN, or MCP_HEADERS)."""
+    """Streamable HTTP MCP client (MCP_AUTH_TOKEN or gateway JWT)."""
 
     def __init__(
         self,

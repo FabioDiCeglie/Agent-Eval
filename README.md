@@ -32,8 +32,7 @@ Secrets stay in `.env`, not in YAML.
 
 | Variable | Purpose |
 |----------|---------|
-| `MCP_AUTH_TOKEN` | Static Bearer token (`Authorization: Bearer …`). |
-| `MCP_HEADERS` | Optional JSON object of extra HTTP headers. `Authorization` from `MCP_AUTH_TOKEN` wins over any `Authorization` key in this JSON. |
+| `MCP_AUTH_TOKEN` | Bearer token for the MCP server (`Authorization: Bearer …`). |
 | `GATEWAY_JWT_SECRET` | Local gateway demo only — mints a short-lived HS256 JWT when `MCP_AUTH_TOKEN` is unset. |
 
 ## Task format

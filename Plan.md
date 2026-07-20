@@ -83,7 +83,7 @@ scripts/         mcp-up.sh, mcp-down.sh, pre-commit hook
 
 ### MCP connection
 
-Tool tasks use **Streamable HTTP** MCP. Pass **`--mcp-url`** on `run` when any task has `tools_allowed`. Optional auth via `MCP_AUTH_TOKEN`, `MCP_HEADERS`, or `GATEWAY_JWT_SECRET` (gateway demo). See [README.md](README.md).
+Tool tasks use **Streamable HTTP** MCP. Pass **`--mcp-url`** on `run` when any task has `tools_allowed`. Optional auth via `MCP_AUTH_TOKEN` or `GATEWAY_JWT_SECRET` (gateway demo). See [README.md](README.md).
 
 For the local gateway stack: `./scripts/mcp-up.sh`, then `--mcp-url http://localhost:8080`.
 
@@ -185,7 +185,7 @@ agent-eval/
 uv run agent-eval run tasks/my_suite.yaml --mcp-url https://mcp.example.com
 ```
 
-Optional auth in `.env`: `MCP_AUTH_TOKEN`, `MCP_HEADERS`, or `GATEWAY_JWT_SECRET` (local gateway demo).
+Optional auth in `.env`: `MCP_AUTH_TOKEN` or `GATEWAY_JWT_SECRET` (local gateway demo).
 
 Text-only suites (`tools_allowed: []`) unchanged — no MCP connection.
 
@@ -200,7 +200,7 @@ Text-only suites (`tools_allowed: []`) unchanged — no MCP connection.
 
 | # | Item | Status |
 |---|------|--------|
-| 1 | Auth: `MCP_AUTH_TOKEN`, `MCP_HEADERS`; JWT from `GATEWAY_JWT_SECRET` when token unset | **Done** |
+| 1 | Auth: `MCP_AUTH_TOKEN`; JWT from `GATEWAY_JWT_SECRET` when token unset | **Done** |
 | 2 | URL: `--mcp-url` only (no env/YAML URL); normalize `…/mcp` | **Done** |
 | 3 | CLI `--mcp-url` required for tool suites | **Done** |
 | 4 | `list_tools()` at suite start; `MCPToolService`; remove `_TOOL_DEFS` | **Done** |
