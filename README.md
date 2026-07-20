@@ -33,7 +33,7 @@ Success criteria: `contains_substring`, `regex_match`, `tool_sequence`. See [Pla
 uv run agent-eval run tasks/mcp_example.yaml
 ```
 
-Set `MCP_GATEWAY_URL` and `MCP_GATEWAY_TOKEN` in `.env` (see `.env.example`).
+Set `GATEWAY_JWT_SECRET` in `.env` to match the gateway (see `.env.example`).
 
 ## Options
 
