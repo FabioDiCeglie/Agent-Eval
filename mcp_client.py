@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import json
 import os
 import time
 from typing import Any
@@ -35,6 +36,36 @@ def _gateway_bearer_token() -> str | None:
     )
 
 
+def _parse_mcp_headers_env() -> dict[str, str]:
+    raw = os.environ.get("MCP_HEADERS", "").strip()
+    if not raw:
+        return {}
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise ValueError("MCP_HEADERS must be valid JSON") from exc
+    if not isinstance(parsed, dict):
+        raise ValueError("MCP_HEADERS must be a JSON object")
+    return {str(key): str(value) for key, value in parsed.items()}
+
+
+def _resolve_bearer_token() -> str | None:
+    """MCP_AUTH_TOKEN wins over JWT minted from GATEWAY_JWT_SECRET."""
+    token = os.environ.get("MCP_AUTH_TOKEN", "").strip()
+    if token:
+        return token
+    return _gateway_bearer_token()
+
+
+def build_mcp_http_headers() -> dict[str, str]:
+    """HTTP headers for the Streamable HTTP MCP session (env-driven)."""
+    headers = _parse_mcp_headers_env()
+    bearer = _resolve_bearer_token()
+    if bearer:
+        headers["Authorization"] = f"Bearer {bearer}"
+    return headers
+
+
 def _format_call_tool_result(result: CallToolResult) -> dict[str, Any]:
     parts: list[str] = []
     for block in result.content:
@@ -51,7 +82,7 @@ def _format_call_tool_result(result: CallToolResult) -> dict[str, Any]:
 
 
 class MCPClient:
-    """Forwards tool calls to the MCP Gateway (Streamable HTTP + JWT from GATEWAY_JWT_SECRET)."""
+    """Streamable HTTP MCP client (gateway JWT, MCP_AUTH_TOKEN, or MCP_HEADERS)."""
 
     def __init__(
         self,
@@ -62,7 +93,7 @@ class MCPClient:
         self.gateway_url = _normalize_gateway_url(
             gateway_url or os.environ.get("MCP_GATEWAY_URL", DEFAULT_GATEWAY_URL)
         )
-        self.token = _gateway_bearer_token()
+        self._http_headers = build_mcp_http_headers()
         self.timeout_sec = timeout_sec
 
         self._stack: contextlib.AsyncExitStack | None = None
@@ -102,15 +133,11 @@ class MCPClient:
             if self._session is not None:
                 return self._session
 
-            headers: dict[str, str] = {}
-            if self.token:
-                headers["Authorization"] = f"Bearer {self.token}"
-
             stack = contextlib.AsyncExitStack()
             try:
                 http_client = await stack.enter_async_context(
                     httpx.AsyncClient(
-                        headers=headers,
+                        headers=self._http_headers,
                         timeout=httpx.Timeout(self.timeout_sec),
                     )
                 )
