@@ -13,7 +13,6 @@ from mcp import ClientSession
 from mcp.client.streamable_http import streamable_http_client
 from mcp.types import CallToolResult, Tool
 
-DEFAULT_MCP_URL = "http://localhost:8080/mcp"
 DEFAULT_TIMEOUT_SEC = 60.0
 
 
@@ -24,20 +23,21 @@ def _normalize_mcp_url(url: str) -> str:
     return url
 
 
-def _env_mcp_url(name: str) -> str | None:
-    value = os.environ.get(name, "").strip()
+def strip_mcp_url(url: str | None) -> str | None:
+    if url is None:
+        return None
+    value = str(url).strip()
     return value or None
 
 
-def resolve_mcp_url(url: str | None = None) -> str:
-    """Resolve Streamable HTTP MCP endpoint (explicit arg → MCP_URL → MCP_GATEWAY_URL)."""
-    raw = (
-        url
-        or _env_mcp_url("MCP_URL")
-        or _env_mcp_url("MCP_GATEWAY_URL")
-        or DEFAULT_MCP_URL
-    )
-    return _normalize_mcp_url(raw)
+def resolve_mcp_url(url: str | None) -> str:
+    """Normalize MCP endpoint URL (--mcp-url only; no env or YAML fallback)."""
+    explicit = strip_mcp_url(url)
+    if not explicit:
+        raise ValueError(
+            "MCP URL is required: pass --mcp-url on the command line."
+        )
+    return _normalize_mcp_url(explicit)
 
 
 def _gateway_bearer_token() -> str | None:
@@ -114,10 +114,6 @@ class MCPClient:
         self._session: ClientSession | None = None
         self._connect_lock = asyncio.Lock()
         self.last_roundtrip_ms: float = 0.0
-
-    @classmethod
-    def from_env(cls) -> MCPClient:
-        return cls()
 
     async def call_tool(self, name: str, inputs: dict[str, Any]) -> dict[str, Any]:
         """Execute a tool on the MCP server and return the result payload."""

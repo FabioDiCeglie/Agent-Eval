@@ -30,17 +30,19 @@ Success criteria: `contains_substring`, `regex_match`, `tool_sequence`. See [Pla
 
 ```bash
 ./scripts/mcp-up.sh
-uv run agent-eval run tasks/mcp_example.yaml
+uv run agent-eval run tasks/mcp_example.yaml --mcp-url http://localhost:8080
 ```
 
 Set `GATEWAY_JWT_SECRET` in `.env` to match the gateway (see `.env.example`). `tasks/mcp_example.yaml` only uses tools allowed by the gateway’s default `policy.yaml` (`echo`).
 
-### MCP connection (env)
+### MCP URL
+
+Pass **`--mcp-url`** when the suite uses tools (no env var, no YAML field).
+
+### MCP auth (env)
 
 | Variable | Purpose |
 |----------|---------|
-| `MCP_URL` | Primary MCP endpoint (normalized to end with `/mcp`). |
-| `MCP_GATEWAY_URL` | Fallback when `MCP_URL` is unset (local gateway demo). |
 | `MCP_AUTH_TOKEN` | Static Bearer token sent as `Authorization: Bearer …`. If set, **overrides** JWT minting from `GATEWAY_JWT_SECRET`. |
 | `GATEWAY_JWT_SECRET` | Mint a short-lived HS256 JWT (local gateway demo). Used when `MCP_AUTH_TOKEN` is unset. |
 | `MCP_HEADERS` | Optional JSON object of extra HTTP headers (e.g. API keys). `Authorization` from `MCP_AUTH_TOKEN` or JWT **overrides** any `Authorization` key in this JSON. |
@@ -49,6 +51,7 @@ Set `GATEWAY_JWT_SECRET` in `.env` to match the gateway (see `.env.example`). `t
 
 ```bash
 uv run agent-eval run tasks/example.yaml --model claude-haiku-4-5 --max-turns 10
+uv run agent-eval run tasks/mcp_example.yaml --mcp-url http://localhost:8080
 ```
 
 ## How it works

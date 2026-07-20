@@ -34,6 +34,10 @@ class Task(BaseModel):
     tags: list[str] = []
 
 
+class SuiteDocument(BaseModel):
+    tasks: list[Task]
+
+
 # Result of running a single Task through the runner.
 class TaskResult(BaseModel):
     task_id: str
