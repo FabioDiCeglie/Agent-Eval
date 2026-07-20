@@ -11,6 +11,7 @@ from rich.console import Console
 from rich.table import Table
 
 from mcp_client import MCPClient, strip_mcp_url
+from mcp_tools import MCPToolService
 from models import SuiteDocument, Task, TaskResult
 from runner import DEFAULT_MAX_TURNS, TaskRunner
 
@@ -20,7 +21,7 @@ console = Console()
 
 
 def load_suite(path: str | Path) -> SuiteDocument:
-    """Read a YAML suite file and return validated tasks and optional MCP config."""
+    """Read a YAML suite file and return validated tasks."""
     raw = yaml.safe_load(Path(path).read_text())
     return SuiteDocument.model_validate(raw)
 
@@ -76,9 +77,21 @@ async def run_suite(
 ) -> list[TaskResult]:
     needs_mcp = any(task.tools_allowed for task in tasks)
     mcp_client = MCPClient(mcp_url=mcp_url) if needs_mcp else None
-    runner = TaskRunner(model=model, max_turns=max_turns, mcp_client=mcp_client)
+    tool_service = MCPToolService()
 
     try:
+        if mcp_client is not None:
+            await tool_service.load(mcp_client)
+            tool_service.validate_tasks(tasks)
+            names = ", ".join(tool_service.tool_names) or "(none)"
+            console.print(f"[dim]MCP tools:[/dim] {names}\n")
+
+        runner = TaskRunner(
+            model=model,
+            max_turns=max_turns,
+            mcp_client=mcp_client,
+            tool_service=tool_service,
+        )
         results: list[TaskResult] = []
         for task in tasks:
             console.print(f"  Running [cyan]{task.id}[/cyan] {task.name}…")
@@ -124,9 +137,12 @@ def run(suite: str, model: str, max_turns: int, mcp_url: str | None) -> None:
         )
     console.print(f"[bold]Loaded {len(tasks)} task(s) from[/bold] {suite}\n")
 
-    results = asyncio.run(
-        run_suite(tasks, model, max_turns, mcp_url=resolved_mcp)
-    )
+    try:
+        results = asyncio.run(
+            run_suite(tasks, model, max_turns, mcp_url=resolved_mcp)
+        )
+    except ValueError as exc:
+        raise click.ClickException(str(exc)) from exc
 
     console.print()
     print_results(results, model)

@@ -69,7 +69,7 @@ flowchart LR
 
 1. Load tasks from YAML and validate with Pydantic
 2. Send each prompt to Claude (with optional tools)
-3. If Claude calls a tool, forward the request to the MCP Gateway and loop
+3. If Claude calls a tool, forward the request to the MCP server and loop
 4. When Claude finishes, check the response against `success_criteria`
 5. Print pass/fail, tokens, and latency per task
 

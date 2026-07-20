@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 import anthropic
 
 from evaluators import evaluate
+from mcp_tools import MCPToolService
 from models import Task, TaskResult
 
 if TYPE_CHECKING:
@@ -14,45 +15,6 @@ if TYPE_CHECKING:
 DEFAULT_MODEL = "claude-opus-4-5"
 DEFAULT_MAX_TURNS = 10
 DEFAULT_MAX_TOKENS = 4096
-
-# Schemas for tools on the gateway demo server (see MCP-Gateway/mcp-server).
-_TOOL_DEFS: dict[str, dict] = {
-    "echo": {
-        "name": "echo",
-        "description": "Echo a message back to the caller.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "message": {
-                    "type": "string",
-                    "description": "Message to echo back",
-                }
-            },
-            "required": ["message"],
-        },
-    },
-    "ping": {
-        "name": "ping",
-        "description": "Return a fixed pong response.",
-        "input_schema": {"type": "object", "properties": {}},
-    },
-}
-
-
-def _build_tool_definitions(names: list[str]) -> list[dict]:
-    tools: list[dict] = []
-    for name in names:
-        if name in _TOOL_DEFS:
-            tools.append(_TOOL_DEFS[name])
-            continue
-        tools.append(
-            {
-                "name": name,
-                "description": f"Invoke the {name} tool.",
-                "input_schema": {"type": "object", "properties": {}},
-            }
-        )
-    return tools
 
 
 class TaskRunner:
@@ -66,11 +28,13 @@ class TaskRunner:
         model: str = DEFAULT_MODEL,
         max_turns: int = DEFAULT_MAX_TURNS,
         mcp_client: MCPClient | None = None,
+        tool_service: MCPToolService | None = None,
     ) -> None:
         self._client = anthropic.AsyncAnthropic()
         self.model = model
         self.max_turns = max_turns
         self.mcp_client = mcp_client
+        self.tool_service = tool_service or MCPToolService()
 
     async def run(self, task: Task) -> TaskResult:
         start = time.perf_counter()
@@ -83,7 +47,11 @@ class TaskRunner:
         input_tokens = 0
         output_tokens = 0
         final_response = ""
-        tools = _build_tool_definitions(task.tools_allowed)
+        tools = (
+            self.tool_service.definitions_for(task.tools_allowed)
+            if task.tools_allowed
+            else []
+        )
 
         try:
             while turn_count < self.max_turns:
@@ -187,7 +155,7 @@ class TaskRunner:
         )
 
     async def _call_tool(self, name: str, inputs: dict) -> str:
-        """Forward a tool call to the MCP Gateway (if available)."""
+        """Forward a tool call to the MCP server (if available)."""
         if self.mcp_client is None:
             return f"[no mcp_client configured — tool '{name}' not executed]"
         result = await self.mcp_client.call_tool(name, inputs)
