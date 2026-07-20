@@ -35,10 +35,12 @@ uv run agent-eval run tasks/mcp_example.yaml
 
 Set `GATEWAY_JWT_SECRET` in `.env` to match the gateway (see `.env.example`). `tasks/mcp_example.yaml` only uses tools allowed by the gateway’s default `policy.yaml` (`echo`).
 
-### MCP auth (env)
+### MCP connection (env)
 
 | Variable | Purpose |
 |----------|---------|
+| `MCP_URL` | Primary MCP endpoint (normalized to end with `/mcp`). |
+| `MCP_GATEWAY_URL` | Fallback when `MCP_URL` is unset (local gateway demo). |
 | `MCP_AUTH_TOKEN` | Static Bearer token sent as `Authorization: Bearer …`. If set, **overrides** JWT minting from `GATEWAY_JWT_SECRET`. |
 | `GATEWAY_JWT_SECRET` | Mint a short-lived HS256 JWT (local gateway demo). Used when `MCP_AUTH_TOKEN` is unset. |
 | `MCP_HEADERS` | Optional JSON object of extra HTTP headers (e.g. API keys). `Authorization` from `MCP_AUTH_TOKEN` or JWT **overrides** any `Authorization` key in this JSON. |

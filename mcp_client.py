@@ -13,15 +13,31 @@ from mcp import ClientSession
 from mcp.client.streamable_http import streamable_http_client
 from mcp.types import CallToolResult, Tool
 
-DEFAULT_GATEWAY_URL = "http://localhost:8080/mcp"
+DEFAULT_MCP_URL = "http://localhost:8080/mcp"
 DEFAULT_TIMEOUT_SEC = 60.0
 
 
-def _normalize_gateway_url(url: str) -> str:
+def _normalize_mcp_url(url: str) -> str:
     url = url.rstrip("/")
     if not url.endswith("/mcp"):
         url = f"{url}/mcp"
     return url
+
+
+def _env_mcp_url(name: str) -> str | None:
+    value = os.environ.get(name, "").strip()
+    return value or None
+
+
+def resolve_mcp_url(url: str | None = None) -> str:
+    """Resolve Streamable HTTP MCP endpoint (explicit arg → MCP_URL → MCP_GATEWAY_URL)."""
+    raw = (
+        url
+        or _env_mcp_url("MCP_URL")
+        or _env_mcp_url("MCP_GATEWAY_URL")
+        or DEFAULT_MCP_URL
+    )
+    return _normalize_mcp_url(raw)
 
 
 def _gateway_bearer_token() -> str | None:
@@ -86,13 +102,11 @@ class MCPClient:
 
     def __init__(
         self,
-        gateway_url: str | None = None,
+        mcp_url: str | None = None,
         *,
         timeout_sec: float = DEFAULT_TIMEOUT_SEC,
     ) -> None:
-        self.gateway_url = _normalize_gateway_url(
-            gateway_url or os.environ.get("MCP_GATEWAY_URL", DEFAULT_GATEWAY_URL)
-        )
+        self.mcp_url = resolve_mcp_url(mcp_url)
         self._http_headers = build_mcp_http_headers()
         self.timeout_sec = timeout_sec
 
@@ -106,7 +120,7 @@ class MCPClient:
         return cls()
 
     async def call_tool(self, name: str, inputs: dict[str, Any]) -> dict[str, Any]:
-        """Execute a tool through the gateway and return the result payload."""
+        """Execute a tool on the MCP server and return the result payload."""
         start = time.perf_counter()
         session = await self._ensure_connected()
         result = await session.call_tool(name, inputs)
@@ -114,7 +128,7 @@ class MCPClient:
         return _format_call_tool_result(result)
 
     async def list_tools(self) -> list[Tool]:
-        """Return tools exposed by the upstream MCP server (via the gateway)."""
+        """Return tools exposed by the connected MCP server."""
         session = await self._ensure_connected()
         response = await session.list_tools()
         return response.tools
@@ -142,7 +156,7 @@ class MCPClient:
                     )
                 )
                 read, write, _ = await stack.enter_async_context(
-                    streamable_http_client(self.gateway_url, http_client=http_client)
+                    streamable_http_client(self.mcp_url, http_client=http_client)
                 )
                 session = await stack.enter_async_context(
                     ClientSession(read, write)
