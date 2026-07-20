@@ -9,7 +9,7 @@ A YAML-based test runner for Claude agents. Define tasks, run them, get pass/fai
 ```
 YAML task file  →  TaskRunner  →  Claude API  →  Evaluator  →  CLI report
                                       ↓
-                               MCP Gateway (if tools_allowed)
+                               MCP server (Streamable HTTP, if tools_allowed)
 ```
 
 1. Load tasks from a YAML file
@@ -61,7 +61,8 @@ tasks:
 main.py          CLI — loads YAML, runs tasks, prints results
 runner.py        Turn loop — Claude API + tool forwarding
 models.py        Pydantic models: Task, SuccessCriteria, TaskResult
-mcp_client.py    Thin MCP Gateway client (Streamable HTTP)
+mcp_client.py    Streamable HTTP MCP client
+mcp_tools.py     MCPToolService — discover tools, map to Anthropic defs
 evaluators/      contains_substring, regex_match, tool_sequence
 tasks/           Example task files
 scripts/         mcp-up.sh, mcp-down.sh, pre-commit hook
@@ -72,7 +73,7 @@ scripts/         mcp-up.sh, mcp-down.sh, pre-commit hook
 ```
 1. POST /v1/messages  { model, messages, tools }
 2. If stop_reason == "tool_use":
-     a. Forward each tool call to MCP Gateway
+     a. Forward each tool call to the MCP server (--mcp-url)
      b. Append tool results to messages
      c. Go to 1
 3. If stop_reason == "end_turn":
@@ -80,16 +81,11 @@ scripts/         mcp-up.sh, mcp-down.sh, pre-commit hook
      b. Return TaskResult
 ```
 
-### MCP Gateway
+### MCP connection
 
-Tool tasks forward calls to an external [MCP Gateway](https://github.com/FabioDiCeglie/MCP-Gateway). agent-eval does not handle auth, rate limiting, or policy — that lives in the gateway.
+Tool tasks use **Streamable HTTP** MCP. Pass **`--mcp-url`** on `run` when any task has `tools_allowed`. Optional auth via `MCP_AUTH_TOKEN`, `MCP_HEADERS`, or `GATEWAY_JWT_SECRET` (gateway demo). See [README.md](README.md).
 
-Configuration (via `.env`):
-
-- `MCP_GATEWAY_URL` — gateway endpoint (default `http://localhost:8080`)
-- `MCP_GATEWAY_TOKEN` — JWT for gateway auth
-
-Start the gateway with `./scripts/mcp-up.sh` before running tool tasks.
+For the local gateway stack: `./scripts/mcp-up.sh`, then `--mcp-url http://localhost:8080`.
 
 ---
 
@@ -113,10 +109,10 @@ Suite-level: pass rate is printed at the end of a run.
 
 ```bash
 uv sync --all-groups
-cp .env.example .env   # ANTHROPIC_API_KEY, MCP_GATEWAY_* if needed
+cp .env.example .env   # ANTHROPIC_API_KEY; MCP auth vars if using tools
 
 uv run agent-eval run tasks/example.yaml
-uv run agent-eval run tasks/mcp_example.yaml --model claude-haiku-4-5 --max-turns 10
+uv run agent-eval run tasks/mcp_example.yaml --mcp-url http://localhost:8080
 ```
 
 ---
@@ -186,15 +182,10 @@ agent-eval/
 ### Target UX
 
 ```bash
-uv run agent-eval run tasks/my_suite.yaml --mcp-url https://mcp.example.com/mcp
+uv run agent-eval run tasks/my_suite.yaml --mcp-url https://mcp.example.com
 ```
 
-Or via `.env`:
-
-```bash
-MCP_URL=https://mcp.example.com/mcp
-MCP_AUTH_TOKEN=...   # optional Bearer token
-```
+Optional auth in `.env`: `MCP_AUTH_TOKEN`, `MCP_HEADERS`, or `GATEWAY_JWT_SECRET` (local gateway demo).
 
 Text-only suites (`tools_allowed: []`) unchanged — no MCP connection.
 
@@ -205,36 +196,27 @@ Text-only suites (`tools_allowed: []`) unchanged — no MCP connection.
 - Per-task `tools_allowed` must stay in sync with gateway `policy.yaml` with no discovery.
 - Other developers cannot plug in their own MCP without forking or editing Python.
 
-### Work items
+### Work items (2.0 rollout)
 
-1. **Generic connection config**
-   - Primary: `MCP_URL` (required when any task in the suite uses tools).
-   - Optional: `MCP_AUTH_TOKEN` or `MCP_HEADERS` (JSON) for Bearer / API-key auth.
-   - **Backward compatible:** if `MCP_URL` is unset, fall back to `MCP_GATEWAY_URL`; if `GATEWAY_JWT_SECRET` is set, keep minting JWT as today (gateway preset).
+| # | Item | Status |
+|---|------|--------|
+| 1 | Auth: `MCP_AUTH_TOKEN`, `MCP_HEADERS`; JWT from `GATEWAY_JWT_SECRET` when token unset | **Done** |
+| 2 | URL: `--mcp-url` only (no env/YAML URL); normalize `…/mcp` | **Done** |
+| 3 | CLI `--mcp-url` required for tool suites | **Done** |
+| 4 | `list_tools()` at suite start; `MCPToolService`; remove `_TOOL_DEFS` | **Done** |
+| 5 | README + Plan docs (generic MCP default; gateway appendix) | **Done** |
 
-2. **Discover tools from the server**
-   - At suite start: `list_tools()` on the MCP session.
-   - Map MCP `Tool` → Anthropic tool definitions (`name`, `description`, `inputSchema`).
-   - Per-task `tools_allowed`: filter that catalog (empty list = text-only task; non-empty = only those names exposed to Claude for that task).
+**Delivered behavior (summary):**
 
-3. **Remove hardcoded `_TOOL_DEFS`**
-   - Delete demo-only schemas from `runner.py`; all tool metadata comes from the connected MCP server.
+1. **Connection** — `--mcp-url` on `run` when any task uses tools. Auth via env only.
+2. **Tool discovery** — `list_tools()` → Anthropic definitions; `tools_allowed` filters per task.
+3. **No hardcoded demo schemas** in `runner.py`.
+4. **Docs** — README leads with any MCP server; gateway under appendix.
 
-4. **CLI**
-   - Add `--mcp-url` on `run`; overrides env / suite file.
+**Deferred / out of scope:**
 
-5. **Optional suite-level YAML** (nice-to-have in 2.0)
-   ```yaml
-   mcp:
-     url: https://mcp.example.com/mcp   # or rely on MCP_URL env
-   tasks:
-     - id: ...
-   ```
-   CLI `--mcp-url` wins over file; secrets stay in env, not committed YAML.
-
-6. **Documentation**
-   - Default path: “Connect any Streamable HTTP MCP server.”
-   - Appendix: “Local gateway demo” (`./scripts/mcp-up.sh`, policy, JWT) as an integration example.
+- Suite-level `mcp.url` in YAML (CLI-only URL by design)
+- `MCP_URL` / `MCP_GATEWAY_URL` env vars for endpoint
 
 ### Architecture (2.0)
 
@@ -252,7 +234,7 @@ Gateway becomes one deployment of an MCP endpoint, not a separate product concep
 ```
 1. POST /v1/messages  { model, messages, tools }   # tools from list_tools(), filtered by task
 2. If stop_reason == "tool_use":
-     a. Forward each tool call to MCP_URL
+     a. Forward each tool call to MCP (--mcp-url)
      b. Append tool results to messages
      c. Go to 1
 3. If stop_reason == "end_turn":
@@ -273,9 +255,9 @@ Policy / upstream allow-lists remain on the MCP server or gateway; agent-eval on
 
 ### Definition of done
 
-- A new developer sets `ANTHROPIC_API_KEY` + `MCP_URL`, writes tasks using tool names from **their** server, and gets pass/fail without cloning MCP-Gateway.
-- Existing `./scripts/mcp-up.sh` + `tasks/mcp_example.yaml` still work via gateway env / JWT fallback.
-- No changes required to evaluators (`contains_substring`, `regex_match`, `tool_sequence`).
+- [x] Developer sets `ANTHROPIC_API_KEY`, passes `--mcp-url` to **their** Streamable HTTP MCP, uses tool names from `list_tools()` in YAML — pass/fail without cloning MCP-Gateway.
+- [x] `./scripts/mcp-up.sh` + `tasks/mcp_example.yaml --mcp-url http://localhost:8080` + `GATEWAY_JWT_SECRET` still works.
+- [x] Evaluators unchanged (`contains_substring`, `regex_match`, `tool_sequence`).
 
 ### Estimated scope
 
