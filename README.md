@@ -76,7 +76,8 @@ agent-eval/
 │   ├── example.yaml
 │   └── mcp_example.yaml
 ├── config/
-│   └── mcp-gateway.env.example
+│   ├── mcp-gateway.env.example
+│   └── mcp-gateway-policy.yaml
 ├── scripts/
 │   ├── mcp-up.sh
 │   └── mcp-down.sh
