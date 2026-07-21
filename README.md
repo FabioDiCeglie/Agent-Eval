@@ -1,10 +1,6 @@
-# Agent-eval
-
-CI for AI agents. Catch regressions before they reach production.
-
-## Badges
-
 ![Agent Eval](https://github.com/FabioDiCeglie/agent-eval/actions/workflows/eval.yml/badge.svg)
+
+# Agent-eval
 
 YAML test suites for Claude agents. Define a prompt and pass criteria, run the suite, get pass/fail with token and latency stats.
 
@@ -88,9 +84,3 @@ uv run agent-eval run tasks/mcp_example.yaml --mcp-url http://localhost:8080
 ```
 
 For other MCP servers that require a Bearer token, set `MCP_AUTH_TOKEN` in `.env`. Details in `.env.example`.
-
-## CI
-
-On every push to `main`, GitHub Actions runs unit tests and `tasks/mcp_public.yaml` against [DLP Test MCP](https://mcp.dlptest.com/api/mcp/) (no Docker, no MCP API key).
-
-**Required:** add repository secret **`ANTHROPIC_API_KEY`** (Settings → Secrets and variables → Actions). Without it, CI fails before the suite runs. The badge stays green only when tests and the public MCP suite both pass.
