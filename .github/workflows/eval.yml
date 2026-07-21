@@ -22,6 +22,15 @@ jobs:
       - name: Unit tests
         run: uv run pytest tests/ -q
 
+      - name: Require Anthropic API key
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "::error::Repository secret ANTHROPIC_API_KEY is not set (Settings → Secrets → Actions)."
+            exit 1
+          fi
+
       - name: Public MCP suite (DLP Test)
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

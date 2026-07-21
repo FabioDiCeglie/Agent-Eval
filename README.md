@@ -91,4 +91,6 @@ For other MCP servers that require a Bearer token, set `MCP_AUTH_TOKEN` in `.env
 
 ## CI
 
-On every push to `main`, GitHub Actions runs unit tests and `tasks/mcp_public.yaml` against [DLP Test MCP](https://mcp.dlptest.com/api/mcp/) (no Docker, no MCP API key). Add **`ANTHROPIC_API_KEY`** as a repository secret so Claude calls can run in CI.
+On every push to `main`, GitHub Actions runs unit tests and `tasks/mcp_public.yaml` against [DLP Test MCP](https://mcp.dlptest.com/api/mcp/) (no Docker, no MCP API key).
+
+**Required:** add repository secret **`ANTHROPIC_API_KEY`** (Settings → Secrets and variables → Actions). Without it, CI fails before the suite runs. The badge stays green only when tests and the public MCP suite both pass.

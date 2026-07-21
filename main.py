@@ -147,6 +147,9 @@ def run(suite: str, model: str, max_turns: int, mcp_url: str | None) -> None:
     console.print()
     print_results(results, model)
 
+    if not all(result.passed for result in results):
+        raise SystemExit(1)
+
 
 if __name__ == "__main__":
     cli()
