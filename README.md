@@ -1,4 +1,8 @@
-# agent-eval
+# Agent-eval
+
+CI for AI agents. Catch regressions before they reach production.
+
+## Badges
 
 ![Agent Eval](https://github.com/FabioDiCeglie/agent-eval/actions/workflows/eval.yml/badge.svg)
 
