@@ -30,6 +30,12 @@ def test_normalize_preserves_existing_mcp_path() -> None:
     )
 
 
+def test_normalize_preserves_trailing_slash_on_mcp_path() -> None:
+    assert resolve_mcp_url("https://mcp.dlptest.com/api/mcp/") == (
+        "https://mcp.dlptest.com/api/mcp/"
+    )
+
+
 def test_client_uses_explicit_url() -> None:
     client = MCPClient(mcp_url="https://client.example.com/base")
     assert client.mcp_url == "https://client.example.com/base/mcp"

@@ -1,0 +1,31 @@
+# Public Streamable HTTP MCP (no Docker, no API key).
+# Synthetic data only — https://dlptest.com/mcp/
+#
+# Do not send local gateway JWT to this host:
+#   GATEWAY_JWT_SECRET= MCP_AUTH_TOKEN= uv run agent-eval run tasks/mcp_public.yaml \
+#     --mcp-url https://mcp.dlptest.com/api/mcp/
+
+tasks:
+  - id: pub_001
+    name: "Generate synthetic email row"
+    prompt: |
+      Call generate_pii_email with count 1 and format json.
+      In your final reply, say whether the tool returned JSON with an email field.
+      Do not paste full SSN or card numbers; this is a smoke test only.
+    tools_allowed:
+      - generate_pii_email
+    success_criteria:
+      type: contains_substring
+      value: "email"
+    tags: [mcp, public, dlptest]
+
+  - id: pub_002
+    name: "Must call generate_pii_email"
+    prompt: |
+      Use generate_pii_email once with count 1 and format json, then confirm success.
+    tools_allowed:
+      - generate_pii_email
+    success_criteria:
+      type: tool_sequence
+      sequence: [generate_pii_email]
+    tags: [mcp, public, tool-sequence]

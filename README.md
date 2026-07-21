@@ -96,6 +96,17 @@ agent-eval/
 
 ---
 
+## Public MCP smoke test (no Docker)
+
+Hosted [DLP Test](https://dlptest.com/mcp/) — synthetic data tools, no signup. Unset local gateway JWT so no `Authorization` header is sent:
+
+```bash
+GATEWAY_JWT_SECRET= MCP_AUTH_TOKEN= uv run agent-eval run tasks/mcp_public.yaml \
+  --mcp-url https://mcp.dlptest.com/api/mcp/
+```
+
+---
+
 ## Appendix — Local MCP Gateway demo
 
 Optional integration example: [MCP-Gateway](https://github.com/FabioDiCeglie/MCP-Gateway) + demo `echo` tool in Docker.

@@ -16,9 +16,12 @@ DEFAULT_TIMEOUT_SEC = 60.0
 
 
 def _normalize_mcp_url(url: str) -> str:
+    had_trailing_slash = url.endswith("/")
     url = url.rstrip("/")
     if not url.endswith("/mcp"):
         url = f"{url}/mcp"
+    if had_trailing_slash:
+        url = f"{url}/"
     return url
 
 
@@ -134,6 +137,7 @@ class MCPClient:
                     httpx.AsyncClient(
                         headers=self._http_headers,
                         timeout=httpx.Timeout(self.timeout_sec),
+                        follow_redirects=True,
                     )
                 )
                 read, write, _ = await stack.enter_async_context(
