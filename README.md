@@ -1,4 +1,6 @@
-# Agent-eval
+# agent-eval
+
+![Agent Eval](https://github.com/FabioDiCeglie/agent-eval/actions/workflows/eval.yml/badge.svg)
 
 YAML test suites for Claude agents. Define a prompt and pass criteria, run the suite, get pass/fail with token and latency stats.
 
@@ -82,3 +84,7 @@ uv run agent-eval run tasks/mcp_example.yaml --mcp-url http://localhost:8080
 ```
 
 For other MCP servers that require a Bearer token, set `MCP_AUTH_TOKEN` in `.env`. Details in `.env.example`.
+
+## CI
+
+On every push to `main`, GitHub Actions runs unit tests and `tasks/mcp_public.yaml` against [DLP Test MCP](https://mcp.dlptest.com/api/mcp/) (no Docker, no MCP API key). Add **`ANTHROPIC_API_KEY`** as a repository secret so Claude calls can run in CI.

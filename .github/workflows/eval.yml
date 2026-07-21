@@ -1,0 +1,32 @@
+name: Agent Eval
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --all-groups
+
+      - name: Unit tests
+        run: uv run pytest tests/ -q
+
+      - name: Public MCP suite (DLP Test)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GATEWAY_JWT_SECRET: ""
+          MCP_AUTH_TOKEN: ""
+        run: |
+          uv run agent-eval run tasks/mcp_public.yaml \
+            --mcp-url https://mcp.dlptest.com/api/mcp/
